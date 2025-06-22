@@ -25,18 +25,20 @@ class ComponentBuilder {
    * @returns {Object} Component definition
    */
   define(name, definition) {
+    // Always serialize methods to strings
+    const serializedMethods = definition.methods ? this.serializeMethods(definition.methods) : {};
     const componentDef = {
       name,
       version: definition.version || '1.0.0',
       props: definition.props || [],
       template: definition.template.toString(),
       styles: definition.styles || '',
-      methods: definition.methods ? this.serializeMethods(definition.methods) : {},
+      methods: serializedMethods,
       events: definition.events || [],
       created: Date.now(),
-      ...definition
+      // Only spread properties that do not overwrite the above
+      ...Object.fromEntries(Object.entries(definition).filter(([k]) => !['version','props','template','styles','methods','events'].includes(k)))
     };
-
     this.registry.set(name, componentDef);
     
     // Auto-register as web component
@@ -69,7 +71,10 @@ class ComponentBuilder {
     }
 
     // Option 2: Save to API/Cloud
-    if (options.type === 'cloud' && this.config.apiEndpoint) {
+    if (options.type === 'cloud') {
+      if (!this.config.apiEndpoint) {
+        throw new Error('API endpoint not configured');
+      }
       return await this.saveToCloud(exportData);
     }
 
@@ -99,6 +104,9 @@ class ComponentBuilder {
         componentData = JSON.parse(source);
       } else {
         // Load from cloud by name
+        if (!this.config.apiEndpoint) {
+          throw new Error('API endpoint not configured');
+        }
         componentData = await this.loadFromCloud(source);
       }
     } else {
