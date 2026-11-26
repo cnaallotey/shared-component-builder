@@ -1,7 +1,10 @@
+const fs = require('fs');
+const path = require('path');
 const ComponentBuilder = require('../dist/component-builder.js');
 
 async function main() {
-  // Initialize the component builder
+  // Initialize the component builder. In Node there is no customElements
+  // registry, so components are only defined and exported here, not rendered.
   const builder = new ComponentBuilder();
 
   console.log('🚀 Shared Component Builder - Node.js Example\n');
@@ -11,7 +14,7 @@ async function main() {
   builder.define('data-table', {
     version: '1.0.0',
     props: ['headers', 'data', 'sortable'],
-    template: (props, state) => {
+    template: (props, state, { escape }) => {
       const headers = JSON.parse(props.headers || '[]');
       const data = JSON.parse(props.data || '[]');
             
@@ -19,13 +22,13 @@ async function main() {
                 <table class="data-table">
                     <thead>
                         <tr>
-                            ${headers.map(header => `<th>${header}</th>`).join('')}
+                            ${headers.map(header => `<th>${escape(header)}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
                         ${data.map(row => `
                             <tr>
-                                ${row.map(cell => `<td>${cell}</td>`).join('')}
+                                ${row.map(cell => `<td>${escape(cell)}</td>`).join('')}
                             </tr>
                         `).join('')}
                     </tbody>
@@ -74,9 +77,9 @@ async function main() {
     console.log('📄 Script length:', script.length, 'characters\n');
         
     // Save script to file (optional)
-    const fs = require('fs');
-    fs.writeFileSync('./examples/data-table-component.js', script);
-    console.log('💾 Script saved to: ./examples/data-table-component.js\n');
+    const outFile = path.join(__dirname, 'data-table-component.js');
+    fs.writeFileSync(outFile, script);
+    console.log('💾 Script saved to:', outFile, '\n');
   } catch (error) {
     console.error('❌ Export error:', error.message);
   }
@@ -102,7 +105,8 @@ async function main() {
       name: 'sample-button',
       version: '1.0.0',
       props: ['text', 'color'],
-      template: '(props, state) => `<button style="background: ${props.color}">${props.text}</button>`',
+      template:
+        '(props, state, { escape }) => `<button style="background: ${escape(props.color)}">${escape(props.text)}</button>`',
       styles: 'button { padding: 10px; border: none; color: white; cursor: pointer; }',
       methods: {},
       events: [],

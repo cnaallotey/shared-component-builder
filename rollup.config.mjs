@@ -1,10 +1,13 @@
+import { readFileSync } from 'node:fs';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import babel from '@rollup/plugin-babel';
-import { terser } from '@rollup/plugin-terser';
+import terser from '@rollup/plugin-terser';
 import dts from 'rollup-plugin-dts';
 
-const packageJson = require('./package.json');
+const packageJson = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8')
+);
 
 export default [
   // Main build
@@ -14,6 +17,7 @@ export default [
       {
         file: packageJson.main,
         format: 'cjs',
+        exports: 'default',
         sourcemap: true,
       },
       {
@@ -45,4 +49,4 @@ export default [
     output: [{ file: packageJson.types, format: 'esm' }],
     plugins: [dts()],
   },
-]; 
+];

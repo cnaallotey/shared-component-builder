@@ -1,7 +1,7 @@
 {
   "name": "shared-component-builder",
   "version": "1.0.0",
-  "description": "A powerful tool for creating, sharing, and reusing web components across projects",
+  "description": "A tool for creating, sharing, and reusing web components across projects",
   "main": "dist/component-builder.js",
   "module": "dist/component-builder.esm.js",
   "unpkg": "dist/component-builder.umd.js",
@@ -16,8 +16,8 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "test": "jest",
-    "lint": "eslint src/**/*.js",
-    "format": "prettier --write src/**/*.js",
+    "lint": "eslint src tests examples",
+    "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\"",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -34,12 +34,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/shared-component-builder.git"
+    "url": "https://github.com/cnaallotey/shared-component-builder.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/shared-component-builder/issues"
+    "url": "https://github.com/cnaallotey/shared-component-builder/issues"
   },
-  "homepage": "https://github.com/yourusername/shared-component-builder#readme",
+  "homepage": "https://github.com/cnaallotey/shared-component-builder#readme",
   "devDependencies": {
     "@babel/core": "^7.22.0",
     "@babel/preset-env": "^7.22.0",
@@ -52,9 +52,10 @@
     "jest-environment-jsdom": "^29.7.0",
     "prettier": "^2.8.8",
     "rollup": "^3.20.0",
-    "rollup-plugin-dts": "^5.0.0"
+    "rollup-plugin-dts": "^5.0.0",
+    "typescript": "~5.4.5"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   }
 }

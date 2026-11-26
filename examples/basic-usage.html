@@ -31,10 +31,10 @@
         builder.define('my-custom-banner', {
             version: '1.0.0',
             props: ['message', 'type', 'closable'],
-            template: (props, state) => `
-                <div class="banner banner--${props.type || 'info'}">
-                    <span>${props.message}</span>
-                    ${props.closable === 'true' ? '<button onclick="this.remove()">×</button>' : ''}
+            template: (props, state, { escape }) => `
+                <div class="banner banner--${escape(props.type || 'info')}">
+                    <span>${escape(props.message)}</span>
+                    ${props.closable === 'true' ? '<button on-click="close" aria-label="Close">×</button>' : ''}
                 </div>
             `,
             styles: `
@@ -55,7 +55,12 @@
                     font-size: 18px;
                     font-weight: bold;
                 }
-            `
+            `,
+            methods: {
+                close() {
+                    this.remove();
+                }
+            }
         });
 
         // Define a counter component
@@ -64,8 +69,8 @@
             template: (props, state) => `
                 <div class="counter">
                     <span>Count: ${state.count}</span>
-                    <button onclick="this.increment()">+</button>
-                    <button onclick="this.decrement()">-</button>
+                    <button on-click="increment">+</button>
+                    <button on-click="decrement">-</button>
                 </div>
             `,
             styles: `
@@ -96,19 +101,19 @@
             },
             initialState: { count: 0 },
             mounted() {
-                this.state.count = parseInt(this.props.initial || 0);
+                this.setState({ count: parseInt(this.props.initial || 0) });
             }
         });
 
         // Define a modal component
         builder.define('modal-component', {
             props: ['title', 'visible'],
-            template: (props, state) => `
+            template: (props, state, { escape }) => `
                 <div class="modal ${props.visible === 'true' ? 'visible' : ''}">
                     <div class="modal-content">
-                        <h2>${props.title}</h2>
+                        <h2>${escape(props.title)}</h2>
                         <slot></slot>
-                        <button onclick="this.close()">Close</button>
+                        <button on-click="close">Close</button>
                     </div>
                 </div>
             `,
@@ -146,7 +151,7 @@
             `,
             methods: {
                 close() {
-                    this.dispatchEvent(new CustomEvent('modal-close'));
+                    this.emit('modal-close');
                     this.setAttribute('visible', 'false');
                 }
             }
