@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shared Component Builder</title>
+  <meta name="description" content="Define a web component in one project, export it as JSON or a standalone script, and import it into another. No framework, no build step, no monorepo.">
+  <meta property="og:title" content="Shared Component Builder">
+  <meta property="og:description" content="Move web components between projects as JSON or a standalone script.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/site.css">
+  <script type="importmap">
+    { "imports": { "three": "./lib/three.module.min.js", "three/addons/": "./lib/addons/" } }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/mark.svg" alt=""><span>Shared Component Builder</span></a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="docs/">Guide</a>
+        <a href="docs/api.html">API</a>
+        <a class="nav-optional" href="https://github.com/cnaallotey/shared-component-builder">GitHub</a>
+        <a class="button button-dark button-arrow" href="docs/#install">Get started</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero: WebGL sky and meadow, with the live demo floating over it -->
+    <section class="hero scene-host sky-fallback" data-scene-host>
+      <canvas class="scene-canvas" data-scene="meadow" data-anchor="#hero-title" data-horizon="0.5" aria-hidden="true"></canvas>
+      <div class="wrap">
+        <div class="hero-copy">
+          <h1 id="hero-title">
+            <span class="line">Share
+              <span class="glyph-tile" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="url(#tile-grad)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                  <defs><linearGradient id="tile-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb0ff"/><stop offset="1" stop-color="#ffcf6b"/></linearGradient></defs>
+                  <path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14"/>
+                </svg>
+              </span>
+              components</span>
+            <span class="line">across every project</span>
+          </h1>
+          <p class="hero-lede">
+            Define a custom element with a template, styles and methods. Export it as JSON or a
+            standalone script, then import it anywhere. No framework, no build step, no monorepo.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary button-arrow" href="docs/">Get started now</a>
+            <a class="button button-quiet" href="#demo">Try the demo</a>
+          </div>
+          <ul class="trust" aria-label="Highlights">
+            <li><svg viewBox="0 0 24 24" fill="#f5b301"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 21l1.6-7L2 9.2l7.1-.6z"/></svg>Free and open source</li>
+            <li><svg viewBox="0 0 24 24" fill="#10b981"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z"/></svg>Zero dependencies</li>
+            <li><svg viewBox="0 0 24 24" fill="#f97316"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>3.6 kB gzipped</li>
+          </ul>
+        </div>
+
+        <div class="demo-frame" id="demo">
+          <div class="demo" aria-label="Live demo">
+            <section class="pane pane-a" aria-labelledby="pane-a-title">
+              <div class="pane-head">
+                <h2 id="pane-a-title">Project A</h2>
+                <p>where the component is written</p>
+              </div>
+              <label class="editor-label" for="demo-code">Component definition (edit me)</label>
+              <textarea id="demo-code" class="editor" spellcheck="false" autocapitalize="off" autocomplete="off">builder.define('tally-counter', {
+  props: ['label'],
+  initialState: { count: 0 },
+
+  template: (props, state, { escape }) => `
+    <span class="label">${escape(props.label)}</span>
+    <div class="row">
+      <button on-click="decrement" aria-label="Remove one">−</button>
+      <output>${state.count}</output>
+      <button on-click="increment" aria-label="Add one">+</button>
+    </div>
+  `,
+
+  styles: `
+    :host {
+      display: inline-grid; gap: 8px; padding: 14px 18px;
+      border-radius: 18px; background: #fff; color: #16181d;
+      font: 15px system-ui, sans-serif;
+      box-shadow: 0 0 0 1px #e3e7ec, 0 12px 30px rgb(22 24 29 / 0.14);
+    }
+    .label { font-weight: 600; }
+    .row { display: flex; align-items: center; gap: 14px; }
+    output {
+      min-width: 2ch; text-align: center;
+      font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums;
+    }
+    button {
+      width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+      border: 1px solid #e3e7ec; background: #f3f5f8; font-size: 18px;
+    }
+    button:hover { background: #e8efff; }
+  `,
+
+  methods: {
+    increment() {
+      this.setState({ count: this.state.count + 1 });
+    },
+    decrement() {
+      this.setState({ count: Math.max(0, this.state.count - 1) });
+    }
+  }
+});</textarea>
+              <div class="markup-row">
+                <label for="demo-markup">HTML used in both projects</label>
+                <input id="demo-markup" type="text" spellcheck="false" autocomplete="off" value='<tally-counter label="Coffees today"></tally-counter>'>
+              </div>
+              <div class="stage" id="stage-a"></div>
+              <div class="pane-foot">
+                <button type="button" class="button button-primary" id="demo-run">Export and import</button>
+                <button type="button" class="button button-quiet" id="demo-reset">Reset</button>
+                <p class="status" id="status-a" role="status"></p>
+              </div>
+            </section>
+
+            <div class="lane" aria-hidden="true"><span class="parcel" id="parcel"></span></div>
+
+            <section class="pane pane-b" aria-labelledby="pane-b-title">
+              <div class="pane-head">
+                <h2 id="pane-b-title">Project B</h2>
+                <p>a separate page that only receives the JSON</p>
+              </div>
+              <p class="pane-intro">
+                This frame has its own document and its own custom element registry. It loads the
+                library, calls <code>builder.import(json)</code>, and renders the same HTML.
+              </p>
+              <div class="stage" id="stage-b"></div>
+              <div class="pane-foot">
+                <p class="status" id="status-b" role="status"></p>
+              </div>
+              <details class="payload" id="payload" hidden>
+                <summary>See the JSON that was sent</summary>
+                <pre data-no-copy><code id="payload-code"></code></pre>
+              </details>
+            </section>
+          </div>
+          <p class="demo-note">
+            Change the label, the styles or a method, then press <kbd>Export and import</kbd>
+            (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> in the editor). Both projects start fresh on every run.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="works" aria-labelledby="works-title">
+      <div class="wrap">
+        <span class="tag" id="works-title">Custom elements work wherever HTML does</span>
+        <ul class="works-list">
+          <li>React</li>
+          <li>Vue</li>
+          <li>Svelte</li>
+          <li>Angular</li>
+          <li>Astro</li>
+          <li>WordPress</li>
+          <li>Plain HTML</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Before / after, switched by the 3D knob -->
+    <section class="section" aria-labelledby="compare-title">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 id="compare-title">Stop copying the same component into every repo</h2>
+        </div>
+        <div class="compare">
+          <div class="compare-tabs" role="tablist" aria-label="Before and after" data-tabs data-compare>
+            <button type="button" role="tab" id="cmp-tab-before" aria-controls="cmp-before" aria-selected="true" data-compare-tab="0">Copy-pasting</button>
+            <div class="knob-host scene-host" data-scene-host aria-hidden="true">
+              <canvas class="scene-canvas" data-scene="knob"></canvas>
+              <span class="knob-fallback"></span>
+            </div>
+            <button type="button" role="tab" id="cmp-tab-after" aria-controls="cmp-after" aria-selected="false" tabindex="-1" data-compare-tab="1">Sharing</button>
+          </div>
+          <div class="compare-card" data-state="before">
+            <div class="compare-panel" role="tabpanel" id="cmp-before" aria-labelledby="cmp-tab-before" data-panel="before">
+              <div>
+                <h3>Copying components between projects</h3>
+                <ul>
+                  <li>Every project keeps its own copy of the same component</li>
+                  <li>A bug fixed in one copy stays broken in the others</li>
+                  <li>Copies drift apart as each team tweaks its own</li>
+                  <li>Sharing properly usually means a package, a build step or one framework for everyone</li>
+                </ul>
+              </div>
+              <div class="compare-facts">
+                <div class="compare-fact"><strong>Every fix</strong><span>repeated by hand in each repo</span></div>
+                <div class="compare-fact"><strong>Many versions</strong><span>of what should be one component</span></div>
+              </div>
+            </div>
+            <div class="compare-panel" role="tabpanel" id="cmp-after" aria-labelledby="cmp-tab-after" data-panel="after" hidden>
+              <div>
+                <h3>One component, shared everywhere</h3>
+                <ul>
+                  <li>Define it once, then export it as JSON or a standalone script</li>
+                  <li>Import it into any project with one call, or a script tag</li>
+                  <li>Serve it from one URL or server, and every project loads the same version</li>
+                  <li>It's a plain custom element, so it works next to any framework</li>
+                </ul>
+              </div>
+              <div class="compare-facts">
+                <div class="compare-fact"><strong>1 source</strong><span>for every project that imports it</span></div>
+                <div class="compare-fact"><strong>0 installs</strong><span>for a project using a script export</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bento -->
+    <section class="section" aria-labelledby="features-title" style="padding-top: 40px">
+      <div class="wrap">
+        <div class="split-head">
+          <div>
+            <span class="tag">Core features</span>
+            <h2 id="features-title">Everything a shared component needs</h2>
+          </div>
+          <div class="split-side">
+            <p>Props, events, state and scoped styles, in a definition small enough to send anywhere.</p>
+            <a class="button button-dark button-arrow" href="docs/">Read the guide</a>
+          </div>
+        </div>
+
+        <div class="bento">
+          <article class="card card-wide card-sky">
+            <h3>Attributes become props</h3>
+            <p>Change an attribute and the element re-renders. This gauge is a real component built with the library: drag the slider.</p>
+            <div class="card-visual">
+              <div class="props-demo">
+                <sb-gauge id="live-gauge" value="62" label="Storage used"></sb-gauge>
+                <label>
+                  <span><code>value="<span id="live-gauge-value">62</span>"</code></span>
+                  <input type="range" id="live-gauge-input" min="0" max="100" value="62" aria-label="Gauge value">
+                </label>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>Styles stay put</h3>
+            <p>Each element has its own Shadow DOM, so its CSS doesn't leak out and the page's doesn't leak in.</p>
+            <div class="card-visual">
+              <div class="scope-visual" aria-hidden="true">
+                <div class="scope-page">page.css</div>
+                <div class="scope-shadow"><span>#shadow-root</span><b></b><b style="width: 70%"></b></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card card-full card-dark">
+            <h3>Three calls, start to finish</h3>
+            <p>Define a component, export it, import it in the next project. Click the board to flip it.</p>
+            <div class="flip-host scene-host" data-scene-host>
+              <canvas class="scene-canvas" data-scene="flipboard" data-caption="flip-caption" aria-hidden="true"></canvas>
+              <div class="flip-fallback" aria-hidden="true">define() <span>→</span> export() <span>→</span> import()</div>
+            </div>
+            <code class="flip-caption" id="flip-caption">builder.define('tally-counter', { template, styles, methods })</code>
+          </article>
+
+          <article class="card">
+            <h3>Talk to the page</h3>
+            <p><code>this.emit()</code> sends events out of the element. Press the button: it's a component too.</p>
+            <div class="card-visual" style="flex-direction: column; gap: 14px">
+              <sb-notify-button label="Emit an event"></sb-notify-button>
+              <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>Types included</h3>
+            <p>TypeScript checks <code>this.setState</code>, <code>this.emit</code> and your methods.</p>
+            <div class="card-visual">
+<pre class="mini-code" data-no-copy><code>const counter: ComponentDefinition = {
+  initialState: { count: 0 },
+  template: (p, s) => `${s.count}`,
+  methods: {
+    increment() {
+      this.setState({ count: 1 });
+    }
+  }
+};</code></pre>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>Works in Node</h3>
+            <p>Define components in a build script and write script exports to disk.</p>
+            <div class="card-visual">
+<pre class="mini-code" data-no-copy><code>const js = await builder.export(
+  'tally-counter',
+  { type: 'script' }
+);
+fs.writeFileSync('tally-counter.js', js);</code></pre>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section" aria-labelledby="how-title">
+      <div class="wrap how">
+        <div class="how-copy">
+          <span class="tag">How it works</span>
+          <h2 id="how-title">From one project to the next in three steps</h2>
+          <p>The component travels with its template, styles, state and methods. The project that receives it doesn't need a build step.</p>
+          <dl class="how-stats">
+            <div><dt>3 calls</dt><dd>define, export and import</dd></div>
+            <div><dt>0 builds</dt><dd>needed in the project that imports</dd></div>
+          </dl>
+        </div>
+        <div>
+          <div class="step-tabs" role="tablist" aria-label="Steps" data-tabs data-steps>
+            <button type="button" role="tab" id="step-tab-1" aria-controls="step-1" aria-selected="true">Step 01</button>
+            <button type="button" role="tab" id="step-tab-2" aria-controls="step-2" aria-selected="false" tabindex="-1">Step 02</button>
+            <button type="button" role="tab" id="step-tab-3" aria-controls="step-3" aria-selected="false" tabindex="-1">Step 03</button>
+          </div>
+          <div class="step-stage">
+            <div class="step-canvas-host scene-host" data-scene-host aria-hidden="true">
+              <canvas class="scene-canvas" data-scene="steps"></canvas>
+              <div class="step-fallback"><span></span><span></span></div>
+            </div>
+            <div class="step-caption" role="tabpanel" id="step-1" aria-labelledby="step-tab-1">
+              <h3>Define the component</h3>
+              <p>Write a template, styles and methods with <code>builder.define()</code>. It's registered on the page straight away.</p>
+            </div>
+            <div class="step-caption" role="tabpanel" id="step-2" aria-labelledby="step-tab-2" hidden>
+              <h3>Export it</h3>
+              <p><code>builder.export()</code> turns it into JSON, or a standalone script that doesn't need the library.</p>
+            </div>
+            <div class="step-caption" role="tabpanel" id="step-3" aria-labelledby="step-tab-3" hidden>
+              <h3>Import it in Project B</h3>
+              <p><code>builder.import()</code> loads it from a file, a URL or your server, and the element is ready to use.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Three ways to share -->
+    <section class="section" aria-labelledby="ways-title" style="padding-top: 40px">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="tag">Three ways to share</span>
+          <h2 id="ways-title">Pick how the component travels</h2>
+          <p>Use whichever fits how your projects are set up. You can mix them.</p>
+        </div>
+        <div class="share-center">
+          <div class="segmented" role="tablist" aria-label="Ways to share" data-tabs>
+            <button type="button" role="tab" id="tab-json" aria-controls="share-json" aria-selected="true">JSON file</button>
+            <button type="button" role="tab" id="tab-script" aria-controls="share-script" aria-selected="false" tabindex="-1">Standalone script</button>
+            <button type="button" role="tab" id="tab-server" aria-controls="share-server" aria-selected="false" tabindex="-1">Your own server</button>
+          </div>
+        </div>
+
+        <div class="share-panel" role="tabpanel" id="share-json" aria-labelledby="tab-json">
+          <div class="share-text">
+            <h3>Send the JSON</h3>
+            <p>Export the component as data, then import it in the other project. Commit the file, serve it from a CDN, or paste it in. Both projects use this library.</p>
+            <span class="tag">Good for projects you control</span>
+          </div>
+          <div class="share-code">
+<pre><code>// Project A
+const { data } = await builder.export('tally-counter');
+// save data as tally-counter.json
+
+// Project B
+await builder.import('/components/tally-counter.json');</code></pre>
+          </div>
+        </div>
+
+        <div class="share-panel" role="tabpanel" id="share-script" aria-labelledby="tab-script" hidden>
+          <div class="share-text">
+            <h3>Ship a standalone script</h3>
+            <p>Export a single <code>.js</code> file that registers the element by itself. The other project doesn't install anything, so it works in any site, CMS or framework.</p>
+            <span class="tag">Good for sites you don't control</span>
+          </div>
+          <div class="share-code">
+<pre><code>// Project A, e.g. in a build script
+const js = await builder.export('tally-counter', { type: 'script' });
+fs.writeFileSync('tally-counter.js', js);
+
+&lt;!-- Anywhere else --&gt;
+&lt;script src="tally-counter.js"&gt;&lt;/script&gt;
+&lt;tally-counter label="Coffees today"&gt;&lt;/tally-counter&gt;</code></pre>
+          </div>
+        </div>
+
+        <div class="share-panel" role="tabpanel" id="share-server" aria-labelledby="tab-server" hidden>
+          <div class="share-text">
+            <h3>Use your own component server</h3>
+            <p>Point <code>apiEndpoint</code> at a server with two routes, then save and load components by name across every project on your team.</p>
+            <span class="tag">Good for a team library</span>
+          </div>
+          <div class="share-code">
+<pre><code>const builder = new ComponentBuilder({
+  apiEndpoint: 'https://components.example.com/api'
+});
+
+// POST /components
+await builder.export('tally-counter', { type: 'cloud' });
+
+// GET /components/tally-counter
+await builder.import('tally-counter');</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Rules -->
+    <section class="section" aria-labelledby="rules-title" style="padding-top: 40px">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="tag">Before you share</span>
+          <h2 id="rules-title">Three rules keep shared components working</h2>
+          <p>Components travel as source text. That keeps them small and framework-free.</p>
+        </div>
+        <ul class="rules">
+          <li>
+            <span class="rule-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg></span>
+            <h3>Keep functions self-contained</h3>
+            <p>Templates and methods can't use variables or imports from the file they were written in. Those don't exist in the project that imports the component.</p>
+          </li>
+          <li>
+            <span class="rule-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+            <h3>Only import from sources you trust</h3>
+            <p>Importing runs the component's code, the same as adding a script tag.</p>
+          </li>
+          <li>
+            <span class="rule-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg></span>
+            <h3>Escape what users type</h3>
+            <p>Props aren't escaped for you. Wrap anything that could contain user input in <code>escape()</code>, which every template receives.</p>
+          </li>
+        </ul>
+        <p class="rules-more"><a href="docs/#shareable">Read more about writing shareable components</a></p>
+      </div>
+    </section>
+
+    <!-- Closing, over a second meadow -->
+    <section class="closing scene-host sky-fallback" data-scene-host aria-labelledby="closing-title">
+      <canvas class="scene-canvas" data-scene="meadow" data-islands="false" data-horizon="0.66" aria-hidden="true"></canvas>
+      <div class="wrap">
+        <span class="tag">Ready when you are</span>
+        <h2 id="closing-title">Share your first component this afternoon</h2>
+        <p>Install the package, define one element, and import it into the next project you open.</p>
+        <div class="hero-actions">
+          <div class="install">
+            <code>npm install shared-component-builder</code>
+            <button type="button" class="copy-button" aria-label="Copy install command">Copy</button>
+          </div>
+          <a class="button button-primary button-arrow" href="docs/">Get started</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="./"><img src="assets/mark.svg" alt=""><span>Shared Component Builder</span></a>
+          <p>Write a web component once, then move it between projects as JSON or a standalone script.</p>
+        </div>
+        <div>
+          <h2>Docs</h2>
+          <ul>
+            <li><a href="docs/">Guide</a></li>
+            <li><a href="docs/api.html">API reference</a></li>
+            <li><a href="docs/#troubleshooting">Troubleshooting</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Project</h2>
+          <ul>
+            <li><a href="https://github.com/cnaallotey/shared-component-builder">GitHub</a></li>
+            <li><a href="https://www.npmjs.com/package/shared-component-builder">npm</a></li>
+            <li><a href="https://github.com/cnaallotey/shared-component-builder/issues">Report an issue</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-row footer-small">
+        <span>MIT licensed</span>
+        <span>3D scenes made with three.js</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/site.js"></script>
+  <script src="lib/component-builder.umd.js"></script>
+  <script src="assets/live.js"></script>
+  <script src="assets/demo.js"></script>
+  <script type="module" src="assets/scenes/main.js"></script>
+</body>
+</html>

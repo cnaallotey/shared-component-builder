@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guide – Shared Component Builder</title>
+  <meta name="description" content="How to define, share and import web components with Shared Component Builder.">
+  <link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/mark.svg" alt=""><span>Shared Component Builder</span></a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="./" aria-current="page">Guide</a>
+        <a href="api.html">API</a>
+        <a href="https://github.com/cnaallotey/shared-component-builder">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <details class="docs-nav" open>
+      <summary>On this page</summary>
+      <div class="docs-nav-body">
+        <h2>Basics</h2>
+        <ul>
+          <li><a href="#install">Install</a></li>
+          <li><a href="#first-component">Your first component</a></li>
+          <li><a href="#templates">Templates and props</a></li>
+          <li><a href="#styles">Styles</a></li>
+          <li><a href="#events">Events and methods</a></li>
+          <li><a href="#state">State and lifecycle</a></li>
+        </ul>
+        <h2>Sharing</h2>
+        <ul>
+          <li><a href="#export">Exporting</a></li>
+          <li><a href="#import">Importing</a></li>
+          <li><a href="#script">Standalone scripts</a></li>
+          <li><a href="#server">Using a component server</a></li>
+          <li><a href="#shareable">Writing shareable components</a></li>
+        </ul>
+        <h2>More</h2>
+        <ul>
+          <li><a href="#security">Security</a></li>
+          <li><a href="#node">Node.js and build scripts</a></li>
+          <li><a href="#typescript">TypeScript</a></li>
+          <li><a href="#troubleshooting">Troubleshooting</a></li>
+        </ul>
+      </div>
+    </details>
+
+    <main id="main" class="prose">
+      <h1>Guide</h1>
+      <p class="lede">
+        Define a custom element, use it on your page, then move it to another project as JSON or a
+        standalone script. This guide covers each step and the rules that make components portable.
+      </p>
+
+      <h2 id="install">Install</h2>
+      <pre><code>npm install shared-component-builder</code></pre>
+      <pre><code>import ComponentBuilder from 'shared-component-builder';
+
+const builder = new ComponentBuilder();</code></pre>
+      <p>
+        Without a bundler, load the UMD build with a script tag. It sets
+        <code>window.ComponentBuilder</code>.
+      </p>
+      <pre><code>&lt;script src="https://unpkg.com/shared-component-builder/dist/component-builder.umd.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const builder = new ComponentBuilder();
+&lt;/script&gt;</code></pre>
+      <p>
+        CommonJS works too: <code>const ComponentBuilder = require('shared-component-builder');</code>
+      </p>
+
+      <h2 id="first-component">Your first component</h2>
+      <p>
+        Call <code>define</code> with a tag name and a definition. The element is registered straight
+        away, so you can use it in your HTML.
+      </p>
+      <pre><code>builder.define('hello-badge', {
+  props: ['name'],
+  template: (props, state, { escape }) =&gt; `
+    &lt;p&gt;Hello, ${escape(props.name)}!&lt;/p&gt;
+  `,
+  styles: `
+    p { margin: 0; padding: 6px 12px; border-radius: 999px; background: #e3e5fc; }
+  `
+});</code></pre>
+      <pre><code>&lt;hello-badge name="Ada"&gt;&lt;/hello-badge&gt;</code></pre>
+      <h3 id="names">Choosing a name</h3>
+      <p>
+        Tag names follow the custom element rules: lowercase, starting with a letter, and containing
+        at least one hyphen. Letters, digits, <code>.</code>, <code>_</code> and <code>-</code> are
+        allowed. <code>my-button</code> and <code>acme.date-picker</code> work;
+        <code>button</code>, <code>MyButton</code> and <code>2-col</code> don't.
+      </p>
+      <p>
+        A browser can't redefine a custom element, so calling <code>define</code> twice with the same
+        name throws an error. To ship a new version alongside an old one, give it a new name such as
+        <code>hello-badge-v2</code>.
+      </p>
+
+      <h2 id="templates">Templates and props</h2>
+      <p>A template is a function that returns an HTML string:</p>
+      <div class="signature">template(props, state, helpers) → string</div>
+      <ul>
+        <li>
+          <code>props</code> holds the current value of every attribute listed in
+          <code>props</code>. Values are always strings. A missing attribute is <code>''</code>.
+        </li>
+        <li><code>state</code> is the element's state object. See <a href="#state">State and lifecycle</a>.</li>
+        <li><code>helpers.escape(value)</code> HTML-escapes a value.</li>
+      </ul>
+      <p>
+        Changing an attribute listed in <code>props</code> re-renders the element. Attributes not in
+        the list are ignored.
+      </p>
+      <pre><code>builder.define('price-tag', {
+  props: ['amount', 'currency'],
+  template: (props, state, { escape }) =&gt; {
+    const value = Number(props.amount || 0).toFixed(2);
+    return `&lt;span&gt;${escape(props.currency || '$')}${value}&lt;/span&gt;`;
+  }
+});
+
+document.querySelector('price-tag').setAttribute('amount', '12.5'); // re-renders</code></pre>
+      <div class="note note-warn">
+        <p>
+          Props aren't escaped automatically. Anything that could contain user input should go through
+          <code>escape()</code> before it reaches the HTML. Values you parse yourself, such as
+          <code>JSON.parse(props.items)</code>, need escaping when you output them.
+        </p>
+      </div>
+      <p>
+        Templates can also be regular functions or method shorthand. All three forms survive export and
+        import:
+      </p>
+      <pre><code>template: (props) =&gt; `...`
+template: function (props) { return `...`; }
+template(props) { return `...`; }</code></pre>
+      <p>
+        Content placed inside the element in the page can be shown with a <code>&lt;slot&gt;</code>,
+        as with any Shadow DOM element.
+      </p>
+
+      <h2 id="styles">Styles</h2>
+      <p>
+        <code>styles</code> is a CSS string added to the element's Shadow DOM. Rules only apply inside
+        the element, and the page's CSS doesn't reach in. Use <code>:host</code> to style the element
+        itself.
+      </p>
+      <pre><code>styles: `
+  :host { display: inline-block; }
+  :host([hidden]) { display: none; }
+  button { font: inherit; }
+`</code></pre>
+      <p>
+        Inherited properties such as <code>color</code> and <code>font</code> still flow in from the
+        page, and CSS custom properties do too. That makes custom properties a good way to let the host
+        page theme a component:
+      </p>
+      <pre><code>styles: `button { background: var(--badge-accent, #3340e0); }`</code></pre>
+
+      <h2 id="events">Events and methods</h2>
+      <p>
+        Put <code>on-&lt;event&gt;="methodName"</code> on any element in the template. When that event
+        happens on the element or anything inside it, the method is called on the component:
+      </p>
+      <div class="signature">this.methodName(event, element)</div>
+      <pre><code>builder.define('like-button', {
+  initialState: { likes: 0 },
+  template: (props, state) =&gt; `
+    &lt;button on-click="like" data-amount="1"&gt;♥ ${state.likes}&lt;/button&gt;
+  `,
+  methods: {
+    like(event, element) {
+      this.setState({ likes: this.state.likes + Number(element.dataset.amount) });
+    }
+  }
+});</code></pre>
+      <p>
+        Supported events: <code>click</code>, <code>dblclick</code>, <code>input</code>,
+        <code>change</code>, <code>submit</code>, <code>keydown</code>, <code>keyup</code>,
+        <code>focusin</code>, <code>focusout</code>, <code>pointerdown</code> and
+        <code>pointerup</code>. If several nested elements have a handler for the same event, the
+        innermost one wins. If the named method doesn't exist, a warning is logged.
+      </p>
+      <p>
+        For a <code>submit</code> handler, call <code>event.preventDefault()</code> to stop the page
+        from navigating.
+      </p>
+      <div class="note">
+        <p>
+          Write methods as method shorthand or regular functions, not arrow functions, so that
+          <code>this</code> is the element. Methods can take arguments and call each other, and you can
+          call them from outside: <code>document.querySelector('like-button').like()</code>.
+        </p>
+      </div>
+      <p>
+        Don't use inline handlers such as <code>onclick="this.like()"</code>. They run with
+        <code>this</code> set to the button, not the component.
+      </p>
+      <h3 id="emit">Telling the page something happened</h3>
+      <p>
+        <code>this.emit(name, detail)</code> dispatches a <code>CustomEvent</code> that bubbles out of
+        the Shadow DOM, so the page can listen for it on the element, on a parent, or on
+        <code>document</code>.
+      </p>
+      <pre><code>methods: {
+  close() {
+    this.emit('modal-close', { reason: 'button' });
+    this.setAttribute('visible', 'false');
+  }
+}
+
+document.addEventListener('modal-close', (event) =&gt; console.log(event.detail.reason));</code></pre>
+
+      <h2 id="state">State and lifecycle</h2>
+      <p>
+        <code>initialState</code> sets each element's starting state. Every element gets its own copy,
+        so two counters on a page never share a count. It has to be JSON-serializable: plain objects,
+        arrays, strings, numbers, booleans and <code>null</code>.
+      </p>
+      <p>
+        <code>this.setState(partial)</code> merges the object you pass into the current state and
+        re-renders. Assigning to <code>this.state</code> directly doesn't re-render; call
+        <code>this.render()</code> yourself if you do.
+      </p>
+      <p>
+        <code>mounted()</code> runs each time the element is added to the page, after its first
+        render. Use <code>setState</code> there if the starting state depends on attributes:
+      </p>
+      <pre><code>builder.define('tally-counter', {
+  props: ['start'],
+  initialState: { count: 0 },
+  template: (props, state) =&gt; `&lt;output&gt;${state.count}&lt;/output&gt;`,
+  mounted() {
+    this.setState({ count: Number(this.props.start || 0) });
+  }
+});</code></pre>
+      <p>What happens when an element is added to the page:</p>
+      <ol>
+        <li>Attribute values listed in <code>props</code> are read into <code>this.props</code>.</li>
+        <li>The template renders once.</li>
+        <li><code>mounted()</code> runs.</li>
+        <li>From then on, attribute changes and <code>setState</code> re-render.</li>
+      </ol>
+      <p>
+        Rendering replaces the Shadow DOM contents, so focus and text typed into inputs inside the
+        element are reset on each render. Keep input values in state if you need them across renders.
+      </p>
+
+      <h2 id="export">Exporting</h2>
+      <p><code>export</code> returns the component in the format you ask for:</p>
+      <pre><code>const json = await builder.export('tally-counter');                    // { type: 'json', data, usage }
+const js = await builder.export('tally-counter', { type: 'script' });   // standalone script (string)
+await builder.export('tally-counter', { type: 'cloud' });               // POST to your server</code></pre>
+      <p>
+        The JSON data holds the name, version, props, styles, initial state and the source text of
+        the template, methods and <code>mounted</code>. Any extra non-function fields you add to the
+        definition, such as <code>description</code> or <code>author</code>, are kept too. Save it
+        wherever suits you: a file in a repository, a CDN, a database.
+      </p>
+      <pre><code>const { data } = await builder.export('tally-counter');
+fs.writeFileSync('tally-counter.json', JSON.stringify(data, null, 2));</code></pre>
+
+      <h2 id="import">Importing</h2>
+      <p><code>import</code> accepts any of these and returns the registered name:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Source</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td>Component data or the <code>export()</code> result</td><td><code>builder.import(json)</code></td></tr>
+            <tr><td>A JSON string</td><td><code>builder.import('{"name":"tally-counter", …}')</code></td></tr>
+            <tr><td>A URL</td><td><code>builder.import('https://cdn.example.com/tally-counter.json')</code></td></tr>
+            <tr><td>A path on the same site</td><td><code>builder.import('/components/tally-counter.json')</code></td></tr>
+            <tr><td>A name on your component server</td><td><code>builder.import('tally-counter')</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Strings starting with <code>{</code> are parsed as JSON. Strings starting with
+        <code>http://</code>, <code>https://</code>, <code>//</code>, <code>/</code>,
+        <code>./</code> or <code>../</code> are fetched. Anything else is loaded by name from your
+        <a href="#server">component server</a>.
+      </p>
+      <p>To register a component under a different tag name, pass <code>name</code>:</p>
+      <pre><code>await builder.import(json, { name: 'acme-counter' });</code></pre>
+      <p>
+        Imports are checked before anything is registered: an invalid name, a missing template, or
+        source that doesn't evaluate to a function throws an error and leaves the page unchanged.
+        A response with a non-2xx status rejects with an error that includes the status, for example
+        <code>Request to /components/x.json failed with status 404 Not Found</code>.
+      </p>
+
+      <h2 id="script">Standalone scripts</h2>
+      <p>
+        A script export is a single file that registers the element without this library. Use it for
+        sites where you can't, or don't want to, install anything.
+      </p>
+      <pre><code>const js = await builder.export('tally-counter', { type: 'script' });
+fs.writeFileSync('public/tally-counter.js', js);</code></pre>
+      <pre><code>&lt;script src="/tally-counter.js"&gt;&lt;/script&gt;
+&lt;tally-counter start="3"&gt;&lt;/tally-counter&gt;</code></pre>
+      <p>
+        The script supports everything a defined component does: props, state, methods,
+        <code>on-*</code> events, <code>emit</code> and <code>mounted</code>. It also sets a global
+        named after the component (for example <code>window.TallyCounter</code>). If an element with
+        the same name is already registered, it logs a warning and does nothing.
+      </p>
+      <p>
+        Script exports don't use <code>eval</code> or <code>new Function</code>, so they work on pages
+        with a strict Content Security Policy.
+      </p>
+
+      <h2 id="server">Using a component server</h2>
+      <p>
+        Set <code>apiEndpoint</code> to save and load components by name. A trailing slash is
+        ignored.
+      </p>
+      <pre><code>const builder = new ComponentBuilder({ apiEndpoint: 'https://components.example.com/api' });</code></pre>
+      <p>Your server needs two routes:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Route</th><th>Used by</th><th>Request and response</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>POST /components</code></td>
+              <td><code>export(name, { type: 'cloud' })</code></td>
+              <td>JSON body is the component data. Whatever JSON you return is passed back to the caller.</td>
+            </tr>
+            <tr>
+              <td><code>GET /components/:name</code></td>
+              <td><code>import(name)</code></td>
+              <td>Return the component data as JSON. The name is URL-encoded.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>A minimal Express server, storing components in memory:</p>
+      <pre><code>import express from 'express';
+
+const app = express();
+const components = new Map();
+app.use(express.json({ limit: '1mb' }));
+
+app.post('/api/components', (req, res) =&gt; {
+  components.set(req.body.name, req.body);
+  res.status(201).json({ saved: req.body.name });
+});
+
+app.get('/api/components/:name', (req, res) =&gt; {
+  const component = components.get(req.params.name);
+  if (!component) return res.status(404).json({ error: 'Not found' });
+  res.json(component);
+});
+
+app.listen(3000);</code></pre>
+      <div class="note note-warn">
+        <p>
+          Anyone who can write to this server can run code in every project that imports from it. Put
+          authentication in front of <code>POST</code> before using it beyond your own machine.
+        </p>
+      </div>
+
+      <h2 id="shareable">Writing shareable components</h2>
+      <p>
+        Components travel as source text, and the code is rebuilt in the project that imports it.
+        In the project where you define a component, everything works because the original functions
+        are used. These rules are about what still works after it moves.
+      </p>
+      <h3 id="self-contained">Keep functions self-contained</h3>
+      <p>
+        Templates, methods and <code>mounted</code> can only use their arguments, <code>this</code>
+        and browser globals. Variables, imports and helper functions from the surrounding file are not
+        exported.
+      </p>
+      <pre><code>// Breaks after import: formatPrice isn't sent along
+import { formatPrice } from './utils.js';
+template: (props) =&gt; `&lt;span&gt;${formatPrice(props.amount)}&lt;/span&gt;`
+
+// Works everywhere: the logic lives inside the template
+template: (props) =&gt; `&lt;span&gt;$${Number(props.amount).toFixed(2)}&lt;/span&gt;`</code></pre>
+      <p>
+        If several methods need the same helper, make it a method and call it with
+        <code>this.helper()</code>.
+      </p>
+      <h3 id="this">Use regular functions for methods</h3>
+      <p>
+        Arrow functions don't get the element as <code>this</code>. Use <code>increment() { … }</code>
+        or <code>increment: function () { … }</code>.
+      </p>
+      <h3 id="json-state">Keep state JSON-friendly</h3>
+      <p>
+        <code>initialState</code> is copied with JSON, so dates become strings and functions,
+        <code>Map</code>s and class instances are lost. Store plain data and convert it when you
+        render.
+      </p>
+      <h3 id="test-it">Test the round trip</h3>
+      <p>Import a component under a new name in the same page to check it works after it moves:</p>
+      <pre><code>const json = await builder.export('tally-counter');
+await new ComponentBuilder().import(json, { name: 'tally-counter-check' });
+document.body.insertAdjacentHTML('beforeend', '&lt;tally-counter-check&gt;&lt;/tally-counter-check&gt;');</code></pre>
+
+      <h2 id="security">Security</h2>
+      <ul>
+        <li>
+          <strong>Importing runs code.</strong> <code>import</code> evaluates the component's
+          template, methods and <code>mounted</code>. Treat a component URL like a script URL: only
+          import from sources you trust.
+        </li>
+        <li>
+          <strong>Escape user input.</strong> Templates produce HTML. Pass anything that could come from
+          a user through <code>escape()</code>.
+        </li>
+        <li>
+          <strong>Content Security Policy.</strong> <code>import</code> uses <code>new Function</code>,
+          which needs <code>'unsafe-eval'</code> in your CSP. <code>define</code> and standalone
+          script exports don't.
+        </li>
+      </ul>
+
+      <h2 id="node">Node.js and build scripts</h2>
+      <p>
+        Node has no <code>customElements</code>, so <code>define</code> and <code>import</code> only
+        update the registry there and don't register an element. Everything else works, which makes
+        Node a good place to generate script exports during a build:
+      </p>
+      <pre><code>// scripts/export-components.js
+const fs = require('fs');
+const ComponentBuilder = require('shared-component-builder');
+
+const builder = new ComponentBuilder();
+builder.define('tally-counter', require('../src/components/tally-counter'));
+
+builder.export('tally-counter', { type: 'script' }).then((js) =&gt; {
+  fs.writeFileSync('dist/tally-counter.js', js);
+});</code></pre>
+
+      <h2 id="typescript">TypeScript</h2>
+      <p>
+        Types ship with the package. <code>ComponentDefinition</code> types <code>this</code> inside
+        templates, methods and <code>mounted</code> as a <code>ComponentInstance</code>, so
+        <code>this.setState</code> and <code>this.emit</code> are checked.
+      </p>
+      <pre><code>import ComponentBuilder, { type ComponentDefinition } from 'shared-component-builder';
+
+const counter: ComponentDefinition = {
+  props: ['start'],
+  initialState: { count: 0 },
+  template: (props, state) =&gt; `&lt;output&gt;${state.count}&lt;/output&gt;`,
+  methods: {
+    increment() {
+      this.setState({ count: this.state.count + 1 });
+    }
+  }
+};
+
+new ComponentBuilder().define('tally-counter', counter);</code></pre>
+      <p>
+        <code>export()</code> is typed by its <code>type</code> option: <code>'script'</code>
+        resolves to a <code>string</code> and the default resolves to a <code>JsonExport</code>.
+      </p>
+
+      <h2 id="troubleshooting">Troubleshooting</h2>
+      <h4>"Component "x-y" is already defined"</h4>
+      <p>
+        That tag name is already registered on the page, by this builder, another builder or a script
+        export. Custom elements can't be redefined. Pick a new name, or pass
+        <code>{ name }</code> when importing.
+      </p>
+      <h4>"Invalid component name"</h4>
+      <p>See <a href="#names">Choosing a name</a>. The name needs a hyphen and lowercase letters.</p>
+      <h4>"… is not defined" after importing</h4>
+      <p>
+        The template or a method uses a variable from the file it was written in. See
+        <a href="#self-contained">Keep functions self-contained</a>.
+      </p>
+      <h4>"no method "save" for on-click"</h4>
+      <p>
+        The template names a method that isn't in <code>methods</code>. Check the spelling in both
+        places.
+      </p>
+      <h4>Clicking does nothing, or <code>this.setState is not a function</code></h4>
+      <p>
+        Either the template uses an inline <code>onclick</code> attribute, or the method is an arrow
+        function. Use <code>on-click="method"</code> and method shorthand.
+      </p>
+      <h4>The page doesn't hear an event from the component</h4>
+      <p>
+        Use <code>this.emit(name)</code>. A <code>CustomEvent</code> created by hand doesn't bubble
+        out of the element unless you set <code>bubbles</code> and <code>composed</code>.
+      </p>
+
+      <nav class="page-nav" aria-label="Next page">
+        <a href="../">Home</a>
+        <a href="api.html">API reference</a>
+      </nav>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap footer-row">
+      <span>MIT licensed</span>
+      <a href="https://github.com/cnaallotey/shared-component-builder">Source on GitHub</a>
+      <a href="https://www.npmjs.com/package/shared-component-builder">npm</a>
+      <a href="https://github.com/cnaallotey/shared-component-builder/issues">Report an issue</a>
+    </div>
+  </footer>
+
+  <script src="../assets/site.js"></script>
+</body>
+</html>

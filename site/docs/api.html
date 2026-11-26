@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API reference – Shared Component Builder</title>
+  <meta name="description" content="Every method, option and field in Shared Component Builder.">
+  <link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../assets/mark.svg" alt=""><span>Shared Component Builder</span></a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="./">Guide</a>
+        <a href="api.html" aria-current="page">API</a>
+        <a href="https://github.com/cnaallotey/shared-component-builder">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <details class="docs-nav" open>
+      <summary>On this page</summary>
+      <div class="docs-nav-body">
+        <h2>ComponentBuilder</h2>
+        <ul>
+          <li><a href="#constructor">constructor</a></li>
+          <li><a href="#define">define</a></li>
+          <li><a href="#export">export</a></li>
+          <li><a href="#import">import</a></li>
+          <li><a href="#escape-html">escapeHtml</a></li>
+          <li><a href="#properties">Properties</a></li>
+          <li><a href="#lower-level">Lower-level methods</a></li>
+        </ul>
+        <h2>Components</h2>
+        <ul>
+          <li><a href="#definition">ComponentDefinition</a></li>
+          <li><a href="#element">Element instance</a></li>
+          <li><a href="#data">ComponentData</a></li>
+          <li><a href="#errors">Errors</a></li>
+        </ul>
+      </div>
+    </details>
+
+    <main id="main" class="prose">
+      <h1>API reference</h1>
+      <p class="lede">
+        Every public method, option and field. For explanations and examples, see the
+        <a href="./">guide</a>.
+      </p>
+
+      <h2 id="constructor">new ComponentBuilder(options?)</h2>
+      <p>Creates a builder with its own registry of components.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>apiEndpoint</code></td><td><code>string | null</code></td><td><code>null</code></td>
+              <td>Base URL of your <a href="./#server">component server</a>. Needed for <code>export(…, { type: 'cloud' })</code> and importing by name.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Other options are kept on <code>builder.config</code> but not used.</p>
+
+      <h2 id="define">define(name, definition)</h2>
+      <div class="signature">define(name: string, definition: ComponentDefinition): ComponentData</div>
+      <p>
+        Stores the component in the registry and, in a browser, registers it as a custom element. Returns
+        the serializable <a href="#data">component data</a>.
+      </p>
+      <p>Throws if:</p>
+      <ul>
+        <li><code>name</code> isn't a valid custom element name;</li>
+        <li><code>definition.template</code> isn't a function;</li>
+        <li>the name is already in this registry or already registered on the page;</li>
+        <li><code>initialState</code> isn't JSON-serializable;</li>
+        <li>a method is a bound or native function, which can't be turned into source.</li>
+      </ul>
+      <p>When it throws, nothing is registered.</p>
+
+      <h2 id="export">export(name, options?)</h2>
+      <div class="signature">export(name: string, options?: { type?: 'json' | 'script' | 'cloud' }): Promise</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th><code>type</code></th><th>Resolves to</th></tr></thead>
+          <tbody>
+            <tr><td><code>'json'</code> (default)</td><td><code>{ type: 'json', data: ComponentData, usage: string }</code></td></tr>
+            <tr><td><code>'script'</code></td><td>A standalone script as a <code>string</code>. See <a href="./#script">Standalone scripts</a>.</td></tr>
+            <tr><td><code>'cloud'</code></td><td>The JSON your server returns from <code>POST {apiEndpoint}/components</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <code>data</code> also includes <code>exportedAt</code> (a timestamp) and
+        <code>exportOptions</code>. Rejects if the component isn't in the registry, if
+        <code>type: 'cloud'</code> is used without <code>apiEndpoint</code>, or if the server responds
+        with a non-2xx status.
+      </p>
+
+      <h2 id="import">import(source, options?)</h2>
+      <div class="signature">import(source: string | ComponentData | JsonExport, options?: { name?: string }): Promise&lt;string&gt;</div>
+      <p>Registers a component and resolves to its tag name.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th><code>source</code></th><th>Treated as</th></tr></thead>
+          <tbody>
+            <tr><td>An object</td><td>Component data. An <code>export()</code> result (<code>{ type: 'json', data }</code>) is unwrapped.</td></tr>
+            <tr><td>String starting with <code>{</code></td><td>JSON to parse.</td></tr>
+            <tr><td>String starting with <code>http://</code>, <code>https://</code>, <code>//</code>, <code>/</code>, <code>./</code> or <code>../</code></td><td>A URL to fetch.</td></tr>
+            <tr><td>Any other string</td><td>A name to load from <code>GET {apiEndpoint}/components/{name}</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <code>options.name</code> registers the component under a different tag name. Rejects on invalid
+        data, an invalid or taken name, a non-2xx response, or a missing <code>apiEndpoint</code> when
+        loading by name. A failed import registers nothing.
+      </p>
+      <div class="note note-warn">
+        <p>Importing evaluates the component's function sources. Only import from sources you trust.</p>
+      </div>
+
+      <h2 id="escape-html">ComponentBuilder.escapeHtml(value)</h2>
+      <div class="signature">static escapeHtml(value: unknown): string</div>
+      <p>
+        Converts <code>value</code> to a string and escapes <code>&amp;</code>, <code>&lt;</code>,
+        <code>&gt;</code>, <code>"</code> and <code>'</code>. <code>null</code> and
+        <code>undefined</code> become <code>''</code>. Templates receive the same function as
+        <code>helpers.escape</code>.
+      </p>
+
+      <h2 id="properties">Properties</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>registry</code></td><td><code>Map&lt;string, ComponentData&gt;</code></td><td>Components defined or imported by this builder, by name.</td></tr>
+            <tr><td><code>config</code></td><td><code>object</code></td><td>The options passed to the constructor, with defaults applied.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="lower-level">Lower-level methods</h2>
+      <p>
+        <code>define</code>, <code>export</code> and <code>import</code> use these. They're public for
+        custom workflows.
+      </p>
+      <h3 id="generate-script">generateScript(data)</h3>
+      <div class="signature">generateScript(data: ComponentData): string</div>
+      <p>Returns the standalone script for component data. Throws if <code>data.name</code> is invalid.</p>
+      <h3 id="register-from-data">registerFromData(data, options?)</h3>
+      <div class="signature">registerFromData(data: ComponentData, options?: { name?: string }): string</div>
+      <p>The synchronous part of <code>import</code>: validates data, rebuilds functions, registers the element and stores it in the registry.</p>
+      <h3 id="register-web-component">registerWebComponent(name, definition)</h3>
+      <div class="signature">registerWebComponent(name: string, definition: ComponentDefinition): boolean</div>
+      <p>
+        Registers a custom element from a definition with real functions, without touching the registry.
+        Returns <code>false</code> where <code>customElements</code> doesn't exist, such as Node. Throws if
+        the name is already registered on the page.
+      </p>
+      <h3 id="serialize-methods">serializeMethods(methods)</h3>
+      <div class="signature">serializeMethods(methods: Record&lt;string, Function&gt;): Record&lt;string, string&gt;</div>
+      <p>
+        Turns each function into source text that evaluates to a function. Method shorthand such as
+        <code>save(x) { … }</code> becomes <code>function (x) { … }</code>.
+      </p>
+      <h3 id="generate-methods-code">generateMethodsCode(methods)</h3>
+      <div class="signature">generateMethodsCode(methods: Record&lt;string, string&gt;): string</div>
+      <p>Returns object-literal entries (<code>"name": source</code>) for serialized methods.</p>
+      <h3 id="fetch-json">fetchJson(url, init?)</h3>
+      <div class="signature">fetchJson(url: string, init?: RequestInit): Promise&lt;any&gt;</div>
+      <p><code>fetch</code> plus <code>response.json()</code>, rejecting on non-2xx responses.</p>
+      <h3 id="cloud-methods">saveToCloud(data) and loadFromCloud(name)</h3>
+      <div class="signature">saveToCloud(data: ComponentData): Promise&lt;any&gt;</div>
+      <div class="signature">loadFromCloud(name: string): Promise&lt;ComponentData&gt;</div>
+      <p>The two requests to your component server. Both reject without <code>apiEndpoint</code>.</p>
+      <h3 id="helpers">toPascalCase(str) and generateUsageInstructions(name)</h3>
+      <p>
+        <code>toPascalCase('tally-counter')</code> returns <code>'TallyCounter'</code>.
+        <code>generateUsageInstructions</code> returns the text placed in a JSON export's
+        <code>usage</code> field.
+      </p>
+
+      <h2 id="definition">ComponentDefinition</h2>
+      <p>The object passed to <code>define</code>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>template</code></td><td><code>(props, state, helpers) =&gt; string</code></td><td>Required. Returns the element's HTML. <code>helpers</code> is <code>{ escape }</code>.</td></tr>
+            <tr><td><code>props</code></td><td><code>string[]</code></td><td>Attributes to observe and pass to the template. Default <code>[]</code>.</td></tr>
+            <tr><td><code>styles</code></td><td><code>string</code></td><td>CSS added to the Shadow DOM. Default <code>''</code>.</td></tr>
+            <tr><td><code>methods</code></td><td><code>Record&lt;string, Function&gt;</code></td><td>Added to the element. Called from <code>on-*</code> attributes as <code>(event, element)</code>.</td></tr>
+            <tr><td><code>initialState</code></td><td><code>object</code></td><td>JSON-serializable starting state, copied for each element. Default <code>{}</code>.</td></tr>
+            <tr><td><code>mounted</code></td><td><code>() =&gt; void</code></td><td>Runs after the first render each time the element is added to the page.</td></tr>
+            <tr><td><code>version</code></td><td><code>string</code></td><td>Stored with the component. Default <code>'1.0.0'</code>.</td></tr>
+            <tr><td><code>events</code></td><td><code>string[]</code></td><td>Names of events the component emits, for documentation. Default <code>[]</code>.</td></tr>
+            <tr><td>Anything else</td><td>JSON value</td><td>Kept as metadata, for example <code>description</code>. Function values are dropped.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="element">Element instance</h2>
+      <p>Available as <code>this</code> in templates, methods and <code>mounted</code>, and on the element in the page.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Member</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>props</code></td><td>Current values of the observed attributes, as strings.</td></tr>
+            <tr><td><code>state</code></td><td>This element's state.</td></tr>
+            <tr><td><code>setState(partial)</code></td><td>Merges <code>partial</code> into <code>state</code> and re-renders if the element is on the page.</td></tr>
+            <tr><td><code>render()</code></td><td>Re-renders the Shadow DOM from the template.</td></tr>
+            <tr><td><code>emit(name, detail?)</code></td><td>Dispatches a bubbling, composed <code>CustomEvent</code>. Returns <code>false</code> if a listener called <code>preventDefault()</code>.</td></tr>
+            <tr><td>Your methods</td><td>Every function in <code>methods</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Delegated events for <code>on-*</code> attributes: <code>click</code>, <code>dblclick</code>,
+        <code>input</code>, <code>change</code>, <code>submit</code>, <code>keydown</code>,
+        <code>keyup</code>, <code>focusin</code>, <code>focusout</code>, <code>pointerdown</code>,
+        <code>pointerup</code>.
+      </p>
+
+      <h2 id="data">ComponentData</h2>
+      <p>The serializable form returned by <code>define</code>, stored in the registry and sent by <code>export</code>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>name</code></td><td><code>string</code></td><td>Tag name.</td></tr>
+            <tr><td><code>version</code></td><td><code>string</code></td><td>From the definition.</td></tr>
+            <tr><td><code>props</code></td><td><code>string[]</code></td><td>Observed attributes.</td></tr>
+            <tr><td><code>template</code></td><td><code>string</code></td><td>Source of the template function.</td></tr>
+            <tr><td><code>styles</code></td><td><code>string</code></td><td>CSS.</td></tr>
+            <tr><td><code>methods</code></td><td><code>Record&lt;string, string&gt;</code></td><td>Source of each method.</td></tr>
+            <tr><td><code>events</code></td><td><code>string[]</code></td><td>From the definition.</td></tr>
+            <tr><td><code>initialState</code></td><td><code>object</code></td><td>Starting state.</td></tr>
+            <tr><td><code>mounted</code></td><td><code>string | null</code></td><td>Source of <code>mounted</code>.</td></tr>
+            <tr><td><code>created</code></td><td><code>number</code></td><td>When it was defined (ms since epoch).</td></tr>
+            <tr><td><code>exportedAt</code>, <code>exportOptions</code></td><td></td><td>Added by <code>export</code>; not kept when imported.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="errors">Errors</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Message starts with</th><th>Cause</th></tr></thead>
+          <tbody>
+            <tr><td><code>Invalid component name</code></td><td>The name breaks the custom element naming rules.</td></tr>
+            <tr><td><code>Component "…" is already defined</code></td><td>The name is taken in this registry or on the page.</td></tr>
+            <tr><td><code>Component "…" needs a template function</code></td><td><code>define</code> was called without a template.</td></tr>
+            <tr><td><code>Component … not found</code></td><td><code>export</code> was called with a name that isn't in the registry.</td></tr>
+            <tr><td><code>API endpoint not configured</code></td><td>A server operation was used without <code>apiEndpoint</code>.</td></tr>
+            <tr><td><code>Request to … failed with status</code></td><td>The server or URL returned a non-2xx response.</td></tr>
+            <tr><td><code>Invalid template source</code>, <code>Invalid method "…" source</code></td><td>Imported source isn't valid JavaScript.</td></tr>
+            <tr><td><code>… must be a function source string</code>, <code>… does not evaluate to a function</code></td><td>Imported data has a missing or non-function template, method or <code>mounted</code>.</td></tr>
+            <tr><td><code>Component source must be</code></td><td><code>import</code> was called with something other than a string or object.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <nav class="page-nav" aria-label="Previous page">
+        <a href="./">Guide</a>
+        <a href="../">Home</a>
+      </nav>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap footer-row">
+      <span>MIT licensed</span>
+      <a href="https://github.com/cnaallotey/shared-component-builder">Source on GitHub</a>
+      <a href="https://www.npmjs.com/package/shared-component-builder">npm</a>
+      <a href="https://github.com/cnaallotey/shared-component-builder/issues">Report an issue</a>
+    </div>
+  </footer>
+
+  <script src="../assets/site.js"></script>
+</body>
+</html>

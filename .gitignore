@@ -89,3 +89,6 @@ jspm_packages/
 .dynamodb/ 
 # Output of examples/node-usage.js
 examples/data-table-component.js
+
+# Built library copied in by npm run site:build
+site/lib/

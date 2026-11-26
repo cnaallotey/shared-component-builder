@@ -18,7 +18,9 @@
     "test": "jest",
     "lint": "eslint src tests examples",
     "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\"",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "site:build": "npm run build && node scripts/build-site.mjs",
+    "site:serve": "node scripts/serve-site.mjs"
   },
   "keywords": [
     "web-components",
@@ -34,7 +36,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/cnaallotey/shared-component-builder.git"
+    "url": "git+https://github.com/cnaallotey/shared-component-builder.git"
   },
   "bugs": {
     "url": "https://github.com/cnaallotey/shared-component-builder/issues"
@@ -53,6 +55,7 @@
     "prettier": "^2.8.8",
     "rollup": "^3.20.0",
     "rollup-plugin-dts": "^5.0.0",
+    "three": "0.170.0",
     "typescript": "~5.4.5"
   },
   "engines": {

@@ -214,6 +214,8 @@ shared-component-builder/
 │   └── component-builder.d.ts  # TypeScript definitions
 ├── tests/                      # Jest tests (jsdom)
 ├── examples/                   # Browser and Node examples
+├── site/                       # Marketing page and docs (Cloudflare Pages)
+├── scripts/                    # Site build and preview scripts
 ├── dist/                       # Built files (generated)
 ├── package.json
 ├── rollup.config.mjs
@@ -332,6 +334,25 @@ builder.define('modal-component', {
 
 document.addEventListener('modal-close', () => console.log('Modal was closed!'));
 ```
+
+## 🌐 Website and Docs
+
+The marketing page and documentation live in `site/` as plain HTML, CSS and JS. The landing page has a live demo and four three.js scenes (`site/assets/scenes/`). `npm run site:build` copies the built library, three.js (a pinned dev dependency) and a small font subset into `site/lib/`, so the site doesn't depend on a CDN.
+
+```bash
+npm run site:build   # build the library and copy it into site/lib
+npm run site:serve   # preview at http://localhost:4173
+```
+
+### Deploying to Cloudflare Pages
+
+Connect the repository in Cloudflare Pages with:
+
+- **Build command:** `npm run site:build`
+- **Build output directory:** `site`
+- **Node version:** read from `.node-version` (20)
+
+`site/_headers` sets response headers and `site/404.html` is served for unknown paths.
 
 ## 🤝 Contributing
 
